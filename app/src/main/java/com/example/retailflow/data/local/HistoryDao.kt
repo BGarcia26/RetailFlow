@@ -15,13 +15,7 @@ interface HistoryDao {
     fun getAllHistory(): Flow<List<HistoryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(records: List<HistoryEntity>)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRecord(record: HistoryEntity): Long // devuelve el id del turno recién guardado
-
-    @Query("SELECT COUNT(*) FROM flow_history")
-    suspend fun getCount(): Int
 
     // Recalcula el día de la semana desde la fecha ("%w" da 0 = domingo). Repara los turnos antiguos
     // que quedaron guardados como "(Hoy)", "(Ayer)" o con un día equivocado. Solo cambia datos, no el
@@ -47,7 +41,7 @@ interface HistoryDao {
     )
     fun getAccessTotals(): Flow<List<AccessTotals>>
 
-    // Turnos que todavía no tienen estadísticas por acceso (de ejemplo o cerrados antes de esta versión)
+    // Turnos que todavía no tienen estadísticas por acceso (guardados antes de esta versión)
     @Query("SELECT * FROM flow_history WHERE id NOT IN (SELECT shiftId FROM shift_access_stats)")
     suspend fun getShiftsWithoutStats(): List<HistoryEntity>
 

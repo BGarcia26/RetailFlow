@@ -28,7 +28,7 @@ object AccessStatsCalculator {
 
     /**
      * ESTIMADO: solo para turnos que ya estaban guardados antes de existir esta tabla
-     * (los turnos de ejemplo y los cerrados con versiones anteriores). De ellos solo se sabe
+     * (los cerrados con versiones anteriores de la app). De ellos solo se sabe
      * el total por acceso (texto "Acceso 1: 3100 | ...") y el total de compradores del turno,
      * así que los compradores se reparten proporcionalmente al flujo de cada acceso.
      * Se usa el método del "mayor resto" para que la suma sea EXACTAMENTE buyersCount.

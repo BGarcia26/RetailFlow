@@ -41,7 +41,6 @@ class HistoryViewModel(private val repo: FlowRepository) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            repo.seedIfEmpty()
             repo.repairDateLabels()
             repo.backfillAccessStats()
         }

@@ -1,7 +1,6 @@
 package com.example.retailflow.data.repository
 
 import androidx.room.withTransaction
-import com.example.retailflow.data.SeedData
 import com.example.retailflow.data.local.AccessTotals
 import com.example.retailflow.data.local.AppDatabase
 import com.example.retailflow.data.local.FlowEntryEntity
@@ -24,10 +23,6 @@ class FlowRepository(private val db: AppDatabase) {
     /** Personas y compradores por acceso, sumando TODOS los turnos cerrados. */
     val accessTotals: Flow<List<AccessTotals>> = dao.getAccessTotals()
 
-    suspend fun seedIfEmpty() {
-        if (dao.getCount() == 0) dao.insertAll(SeedData.sampleHistory())
-    }
-
     suspend fun repairDateLabels() = dao.repairDateLabels()
 
     suspend fun addEntry(entry: FlowEntryEntity) = dao.insertEntry(entry)
@@ -38,7 +33,7 @@ class FlowRepository(private val db: AppDatabase) {
 
     /**
      * Genera las estadísticas por acceso de los turnos que todavía no las tienen
-     * (turnos de ejemplo y turnos cerrados antes de que existiera la tabla).
+     * (turnos guardados antes de que existiera la tabla).
      * Para esos turnos los compradores por acceso son una ESTIMACIÓN proporcional;
      * los turnos que se cierren desde ahora guardan el valor exacto.
      */

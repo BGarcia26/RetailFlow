@@ -132,7 +132,12 @@ fun HistoryScreen(
                 contentAlignment = Alignment.TopCenter
             ) {
                 Text(
-                    text = "No se encontraron turnos para ese filtro de fecha/hora.",
+                    // La app parte sin datos: sin turnos no hay ningún filtro que culpar
+                    text = if (historyList.isEmpty()) {
+                        "Aún no hay turnos cerrados. Registra personas en \"Capturar\" y cierra el turno aquí."
+                    } else {
+                        "No se encontraron turnos para ese filtro de fecha/hora."
+                    },
                     color = Color.Gray
                 )
             }
