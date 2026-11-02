@@ -33,6 +33,8 @@ La aplicación está desarrollada siguiendo las buenas prácticas recomendadas p
 4. **📊 Dashboard (`DashboardScreen`):**
    * Vista consolidada por punto de acceso (*Conexión Mall, Estacionamiento, Calle Externa, Pasarela Metro*).
    * Cálculo en vivo de porcentaje de compradores vs. tránsito.
+   * Datos reales: suma de **todos los turnos cerrados** (tabla `shift_access_stats`, personas y compradores por acceso) más el turno en curso. Ya no usa cifras base inventadas.
+   * Los turnos de ejemplo y los cerrados antes de la versión 6 de la BD reparten los compradores por acceso de forma estimada (proporcional); los turnos nuevos guardan el valor exacto.
 5. **⏱️ Consola de Muestreo (`CaptureScreen`):**
    * Temporizador asíncrono controlado con corrutinas (`delay`).
    * Captura en 1-Tap por grupo etario (*Niños, Jóvenes, Adultos, Seniors*) y tipo de visita (*Solo, Pareja, Grupo*), con vibración al guardar.

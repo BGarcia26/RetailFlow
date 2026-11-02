@@ -18,7 +18,7 @@ interface HistoryDao {
     suspend fun insertAll(records: List<HistoryEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertRecord(record: HistoryEntity)
+    suspend fun insertRecord(record: HistoryEntity): Long // devuelve el id del turno recién guardado
 
     @Query("SELECT COUNT(*) FROM flow_history")
     suspend fun getCount(): Int
@@ -35,6 +35,21 @@ interface HistoryDao {
             "AND strftime('%w', substr(dateLabel, 7, 4) || '-' || substr(dateLabel, 4, 2) || '-' || substr(dateLabel, 1, 2)) IS NOT NULL"
     )
     suspend fun repairDateLabels()
+
+    // --- ESTADÍSTICAS POR ACCESO DE CADA TURNO CERRADO (alimentan el Dashboard) ---
+    @Insert
+    suspend fun insertAccessStats(stats: List<ShiftAccessEntity>)
+
+    // Suma de TODOS los turnos cerrados, agrupada por acceso. Es un Flow: si se cierra un turno, el Dashboard se actualiza solo.
+    @Query(
+        "SELECT accessName, SUM(totalPeople) AS totalPeople, SUM(buyersCount) AS buyersCount " +
+            "FROM shift_access_stats GROUP BY accessName"
+    )
+    fun getAccessTotals(): Flow<List<AccessTotals>>
+
+    // Turnos que todavía no tienen estadísticas por acceso (de ejemplo o cerrados antes de esta versión)
+    @Query("SELECT * FROM flow_history WHERE id NOT IN (SELECT shiftId FROM shift_access_stats)")
+    suspend fun getShiftsWithoutStats(): List<HistoryEntity>
 
     // --- REGISTROS DEL FORMULARIO EN VIVO ---
     @Query("SELECT * FROM flow_entries ORDER BY id DESC")
