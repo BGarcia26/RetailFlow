@@ -12,8 +12,8 @@ La aplicación está desarrollada siguiendo las buenas prácticas recomendadas p
 
 * **Lenguaje:** Kotlin
 * **UI Framework:** Jetpack Compose (Declarativo)
-* **Arquitectura:** MVVM (Model-View-ViewModel)
-* **Persistencia Local:** Room Database (SQLite)
+* **Arquitectura:** MVVM (Model-View-ViewModel) con capa de repositorios
+* **Persistencia Local:** Room Database (SQLite), versión 5 con migración `MIGRATION_4_5`
 * **Asincronía:** Corrutinas de Kotlin + StateFlow
 * **Navegación:** Navigation Component con `NavHost` y rutas tipadas (`Route`)
 * **Diseño:** Material Design 3
@@ -23,17 +23,28 @@ La aplicación está desarrollada siguiendo las buenas prácticas recomendadas p
 ## 📱 Pantallas y Funcionalidades
 
 1. **🔐 Autenticación (`LoginScreen`):**
-   * Validación en vivo de correo corporativo y contraseña mediante `AuthViewModel` e inmutabilidad con `LoginUiState`.
-2. **📊 Dashboard (`DashboardScreen`):**
+   * Validación en vivo del formato del correo mediante `AuthViewModel` e inmutabilidad con `LoginUiState`.
+   * Verifica las credenciales contra Room y muestra un error si no coinciden. Las cuentas se crean en la app: no hay un usuario de ejemplo precargado.
+2. **📝 Crear cuenta (`RegisterScreen`):**
+   * Nombre, correo corporativo `@rinconsur.com`, contraseña (mínimo 8 caracteres, una mayúscula y un número) y confirmación, con errores en vivo e indicador animado de seguridad.
+   * La contraseña se guarda como hash SHA-256 con salt, nunca en texto plano.
+3. **🔑 Recuperar contraseña (`RecoverPasswordScreen`):**
+   * Valida el dominio corporativo y simula el envío del código con una corrutina (no se envía ningún correo real).
+4. **📊 Dashboard (`DashboardScreen`):**
    * Vista consolidada por punto de acceso (*Conexión Mall, Estacionamiento, Calle Externa, Pasarela Metro*).
    * Cálculo en vivo de porcentaje de compradores vs. tránsito.
-3. **⏱️ Consola de Muestreo (`CaptureScreen`):**
+5. **⏱️ Consola de Muestreo (`CaptureScreen`):**
    * Temporizador asíncrono controlado con corrutinas (`delay`).
-   * Captura en 1-Tap por grupo etario (*Niños, Jóvenes, Adultos, Seniors*) y tipo de visita (*Solo, Pareja, Grupo*).
-4. **📈 Bitácora y Demografía (`DemographicsScreen`):**
+   * Captura en 1-Tap por grupo etario (*Niños, Jóvenes, Adultos, Seniors*) y tipo de visita (*Solo, Pareja, Grupo*), con vibración al guardar.
+6. **📈 Bitácora y Demografía (`DemographicsScreen`):**
    * Métricas detalladas del turno en curso con opción de borrado o edición.
-5. **📜 Historial y Detalles (`HistoryScreen` / `ShiftDetailScreen`):**
-   * Cierre de turno y almacenamiento persistente de históricos.
+   * Editar un registro (`EditEntryDialog`) recalcula edad, tipo de visita y tamaño del grupo. Borrarlo ofrece "Deshacer".
+7. **📜 Historial y Detalles (`HistoryScreen` / `ShiftDetailScreen`):**
+   * Cierre de turno con confirmación y almacenamiento persistente de históricos.
+   * Compartir el reporte de un turno con `Intent.ACTION_SEND`.
+8. **👤 Perfil y foto (`ProfileScreen`):**
+   * Foto desde la cámara (`TakePicture` + `FileProvider`) o la galería (`PickVisualMedia`), sin permisos peligrosos.
+   * La imagen se reduce, se corrige su rotación EXIF y se guarda en `filesDir/avatars`; la ruta queda en Room y la foto anterior se borra.
 
 ---
 
@@ -41,16 +52,43 @@ La aplicación está desarrollada siguiendo las buenas prácticas recomendadas p
 
 ```text
 com.example.retailflow/
-├── data/local/              # Entidades Room, DAOs y AppDatabase (SQLite)
-│   ├── AppDatabase.kt
-│   ├── FlowEntryEntity.kt
-│   ├── HistoryDao.kt
-│   └── HistoryEntity.kt
-├── navigation/              # Definición de rutas centralizadas con Sealed Classes
-│   └── Route.kt
+├── data/
+│   ├── AccessZones.kt       # Lista única de accesos
+│   ├── SeedData.kt          # Turnos de ejemplo para el primer inicio
+│   ├── local/               # Entidades Room, DAOs y AppDatabase (SQLite)
+│   │   ├── AppDatabase.kt
+│   │   ├── FlowEntryEntity.kt
+│   │   ├── HistoryDao.kt
+│   │   ├── HistoryEntity.kt
+│   │   ├── UserDao.kt
+│   │   └── UserEntity.kt
+│   └── repository/          # Única puerta a los datos para los ViewModels
+│       ├── FlowRepository.kt
+│       └── UserRepository.kt
+├── domain/
+│   └── ShiftSummarizer.kt   # Convierte los registros en vivo en un turno del historial
+├── navigation/
+│   ├── AppNavGraph.kt       # NavHost completo y transiciones animadas
+│   └── Route.kt             # Rutas centralizadas con Sealed Classes
 ├── ui/
-│   ├── components/          # TopBar y BottomBar reutilizables
-│   ├── screens/             # Pantallas Composable (Login, Dashboard, Capture, etc.)
+│   ├── components/          # Barras, AgeCounterRow, AppearAnimated, ConversionBar, EditEntryDialog, UserAvatar
+│   ├── screens/             # Pantallas Composable (Login, Register, Dashboard, Capture, etc.)
 │   ├── theme/               # Paleta de colores, tipografía y tema Material 3
-│   └── viewmodel/           # Lógica de negocio (AuthViewModel, HistoryViewModel)
-└── MainActivity.kt          # Punto de entrada y NavHost central
+│   └── viewmodel/           # AuthViewModel, HistoryViewModel y AppViewModelFactory
+├── util/                    # Validators, PasswordHasher, FlowCalculations, ShiftReport, ImageUtils
+└── MainActivity.kt          # Punto de entrada: Scaffold y barras
+```
+
+---
+
+## ▶️ Compilar y probar
+
+Gradle debe ejecutarse con **JDK 17 o 21**. Kotlin 2.0.21 no reconoce JDK 25, que es el que trae la versión actual de Android Studio.
+
+```bash
+./gradlew :app:assembleDebug
+```
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
