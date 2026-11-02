@@ -1,5 +1,6 @@
 package com.example.retailflow.ui.screens
 
+import android.app.Activity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -50,14 +52,27 @@ fun RegisterScreen(
     var showPass by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
-    // Al salir de la pantalla se limpia el formulario (no queda la clave escrita en memoria)
+    val activity = LocalContext.current as? Activity
+
+    // Al salir de la pantalla se limpia el formulario (no queda la clave escrita en memoria).
+    // Girar el teléfono también destruye la pantalla, pero ahí hay que conservar lo escrito.
     DisposableEffect(Unit) {
-        onDispose { vm.clearRegisterForm() }
+        onDispose {
+            if (activity?.isChangingConfigurations != true) vm.clearRegisterForm()
+        }
     }
 
     val doRegister = {
         focusManager.clearFocus()
-        vm.register(onRegistered)
+        vm.register()
+    }
+
+    // Navega la pantalla actual, que siempre tiene el NavController vivo aunque se haya girado
+    LaunchedEffect(state.registered) {
+        if (state.registered) {
+            vm.clearRegisterForm()
+            onRegistered()
+        }
     }
 
     Scaffold(
