@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -46,14 +47,14 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
     val haptic = LocalHapticFeedback.current
 
     val accessZones = AccessZones.all
-    var selectedAccess by remember { mutableStateOf(accessZones[0].name) }
-    var direction by remember { mutableStateOf("Salida") }
+    var selectedAccess by rememberSaveable { mutableStateOf(accessZones[0].name) }
+    var direction by rememberSaveable { mutableStateOf("Salida") }
 
     // Contadores individuales para permitir familias/grupos mixtos
-    var childCount by remember { mutableIntStateOf(0) }
-    var youngCount by remember { mutableIntStateOf(0) }
-    var adultCount by remember { mutableIntStateOf(1) } // Por defecto 1 adulto listo para registrar
-    var seniorCount by remember { mutableIntStateOf(0) }
+    var childCount by rememberSaveable { mutableIntStateOf(0) }
+    var youngCount by rememberSaveable { mutableIntStateOf(0) }
+    var adultCount by rememberSaveable { mutableIntStateOf(1) } // Por defecto 1 adulto listo para registrar
+    var seniorCount by rememberSaveable { mutableIntStateOf(0) }
 
     // Mensaje de confirmación que se muestra 3 segundos y desaparece solo
     var feedbackText by remember { mutableStateOf("") }
@@ -316,6 +317,23 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold
         )
+
+        // Alto fijo sobre los botones: el mensaje siempre se ve y no los mueve bajo el dedo
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(20.dp)
+        ) {
+            AnimatedVisibility(visible = feedbackVisible) {
+                Text(
+                    text = feedbackText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = BrandBlue,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -343,13 +361,5 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
             }
         }
 
-        AnimatedVisibility(visible = feedbackVisible) {
-            Text(
-                text = feedbackText,
-                style = MaterialTheme.typography.bodySmall,
-                color = BrandBlue,
-                fontWeight = FontWeight.Medium
-            )
-        }
     }
 }
