@@ -1,5 +1,6 @@
 package com.example.retailflow.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +17,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.retailflow.ui.theme.BrandBlue
+import com.example.retailflow.ui.theme.InfoBg
+import com.example.retailflow.ui.theme.TransitRed
 import com.example.retailflow.ui.viewmodel.HistoryViewModel
 
 @Composable
@@ -31,14 +35,17 @@ fun HistoryScreen(
     var dateQuery by remember { mutableStateOf("") }
     var selectedTimeSlot by remember { mutableStateOf("Todos") }
     val timeSlots = listOf("Todos", "Mañana", "Tarde", "Noche")
+    var showCloseConfirm by remember { mutableStateOf(false) }
 
-    // Lista filtrada reactivamente
-    val filteredList = historyList.filter { record ->
-        val matchesDate = record.dateLabel.contains(dateQuery, ignoreCase = true) ||
+    // remember(...) recalcula el filtro SOLO si cambia la lista o alguno de los filtros
+    val filteredList = remember(historyList, dateQuery, selectedTimeSlot) {
+        historyList.filter { record ->
+            val matchesDate = record.dateLabel.contains(dateQuery, ignoreCase = true) ||
                 record.shiftTime.contains(dateQuery, ignoreCase = true)
-        val matchesSlot = selectedTimeSlot == "Todos" ||
+            val matchesSlot = selectedTimeSlot == "Todos" ||
                 record.shiftTime.startsWith(selectedTimeSlot, ignoreCase = true)
-        matchesDate && matchesSlot
+            matchesDate && matchesSlot
+        }
     }
 
     Column(
@@ -47,21 +54,22 @@ fun HistoryScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Tarjeta para archivar el turno en curso si hay datos capturados
-        if (currentShiftPeople > 0) {
+        // Tarjeta para archivar el turno en curso: aparece/desaparece con animación
+        AnimatedVisibility(visible = currentShiftPeople > 0) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
+                colors = CardDefaults.cardColors(containerColor = InfoBg)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Turno Actual en Curso: $currentShiftPeople personas registradas",
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = { viewModel.closeShiftAndSaveToHistory() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF455A89))
+                        onClick = { showCloseConfirm = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
                     ) {
                         Text("Cerrar Turno y Guardar en Historial")
                     }
@@ -119,10 +127,12 @@ fun HistoryScreen(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(filteredList) { record ->
+                // key = id + animateItem(): al filtrar o agregar turnos, las tarjetas se mueven suavemente
+                items(filteredList, key = { it.id }) { record ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .animateItem()
                             .clickable { onShiftClick(record.id) },
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
@@ -146,21 +156,21 @@ fun HistoryScreen(
                                     Icon(
                                         imageVector = Icons.Default.Schedule,
                                         contentDescription = "Horario",
-                                        tint = Color(0xFF455A89),
+                                        tint = BrandBlue,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = record.shiftTime,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color(0xFF455A89),
+                                        color = BrandBlue,
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
                                 Text(text = "Flujo Total: ${record.totalFlow} personas")
                                 Text(
                                     text = "Solo Tránsito (Fuga): ${record.transitOnlyPercentage}%",
-                                    color = Color(0xFFD32F2F),
+                                    color = TransitRed,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -173,12 +183,37 @@ fun HistoryScreen(
                             Icon(
                                 imageVector = Icons.Default.ChevronRight,
                                 contentDescription = "Ver detalle",
-                                tint = Color(0xFF455A89)
+                                tint = BrandBlue
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    // Cerrar el turno borra los registros en vivo: se pide confirmación antes
+    if (showCloseConfirm) {
+        AlertDialog(
+            onDismissRequest = { showCloseConfirm = false },
+            title = { Text("¿Cerrar el turno?") },
+            text = {
+                Text(
+                    "Se guardará un resumen de $currentShiftPeople personas en el historial " +
+                        "y la bitácora del turno quedará vacía."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCloseConfirm = false
+                        viewModel.closeShiftAndSaveToHistory()
+                    }
+                ) { Text("Cerrar turno") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCloseConfirm = false }) { Text("Cancelar") }
+            }
+        )
     }
 }

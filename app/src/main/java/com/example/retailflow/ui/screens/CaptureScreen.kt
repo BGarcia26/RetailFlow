@@ -1,36 +1,52 @@
 package com.example.retailflow.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.retailflow.data.AccessZones
+import com.example.retailflow.ui.components.AgeCounterRow
+import com.example.retailflow.ui.theme.BrandBlue
+import com.example.retailflow.ui.theme.BuyerGreen
+import com.example.retailflow.ui.theme.SuccessBg
+import com.example.retailflow.ui.theme.TransitRed
+import com.example.retailflow.ui.theme.WarnBg
+import com.example.retailflow.ui.theme.WarnOrange
 import com.example.retailflow.ui.viewmodel.HistoryViewModel
+import com.example.retailflow.util.FlowCalculations
+import kotlinx.coroutines.delay
 
 @Composable
 fun CaptureScreen(viewModel: HistoryViewModel) {
     val entries by viewModel.entriesList.collectAsState()
     val timerSeconds by viewModel.timerSeconds.collectAsState()
     val isSampling by viewModel.isSamplingActive.collectAsState()
+    val haptic = LocalHapticFeedback.current
 
-    val accessList = listOf(
-        "Acceso 1 - Conexión Mall",
-        "Acceso 2 - Estacionamiento",
-        "Acceso 3 - Calle Externa",
-        "Acceso 4 - Pasarela Metro"
-    )
-    var selectedAccess by remember { mutableStateOf(accessList[0]) }
+    val accessZones = AccessZones.all
+    var selectedAccess by remember { mutableStateOf(accessZones[0].name) }
     var direction by remember { mutableStateOf("Salida") }
 
     // Contadores individuales para permitir familias/grupos mixtos
@@ -39,7 +55,16 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
     var adultCount by remember { mutableIntStateOf(1) } // Por defecto 1 adulto listo para registrar
     var seniorCount by remember { mutableIntStateOf(0) }
 
-    var lastSavedFeedback by remember { mutableStateOf("") }
+    // Mensaje de confirmación que se muestra 3 segundos y desaparece solo
+    var feedbackText by remember { mutableStateOf("") }
+    var feedbackVisible by remember { mutableStateOf(false) }
+    var feedbackTick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(feedbackTick) {
+        if (feedbackTick > 0) {
+            delay(3000)
+            feedbackVisible = false
+        }
+    }
 
     val totalGroupPeople = childCount + youngCount + adultCount + seniorCount
     val autoCompanionLabel = when {
@@ -49,15 +74,51 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
         else -> "👨‍👩‍👧‍👦 Grupo / Familia ($totalGroupPeople pers.)"
     }
 
-    val minutes = timerSeconds / 60
-    val seconds = timerSeconds % 60
-    val formattedTime = String.format("%02d:%02d", minutes, seconds)
+    // ---- Animaciones del panel de turno ----
+    val cardColor by animateColorAsState(
+        targetValue = if (isSampling) SuccessBg else WarnBg,
+        animationSpec = tween(400),
+        label = "shiftCardColor"
+    )
+    val statusColor by animateColorAsState(
+        targetValue = if (isSampling) BuyerGreen else WarnOrange,
+        animationSpec = tween(400),
+        label = "shiftStatusColor"
+    )
+    val infinite = rememberInfiniteTransition(label = "pulse")
+    val pulse by infinite.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+        label = "pulseAlpha"
+    )
 
-    fun resetCountersAfterSave() {
+    fun clearCounters() {
         childCount = 0
         youngCount = 0
         adultCount = 0
         seniorCount = 0
+    }
+
+    fun saveGroup(madePurchase: Boolean) {
+        val saved = totalGroupPeople
+        viewModel.registerGroupFlow(
+            accessName = selectedAccess,
+            direction = direction,
+            childCount = childCount,
+            youngCount = youngCount,
+            adultCount = adultCount,
+            seniorCount = seniorCount,
+            madePurchase = madePurchase
+        )
+        feedbackText = if (madePurchase) "✅ Guardado ($saved pers. CON COMPRA)"
+        else "⚠️ Guardado ($saved pers. SOLO TRÁNSITO)"
+        feedbackVisible = true
+        feedbackTick++
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress) // vibración al guardar
+        // Listo para la siguiente persona: 1 adulto por defecto
+        clearCounters()
+        adultCount = 1
     }
 
     Column(
@@ -69,9 +130,7 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
     ) {
         // 1. Control de Turno / Muestreo
         Card(
-            colors = CardDefaults.cardColors(
-                containerColor = if (isSampling) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
-            ),
+            colors = CardDefaults.cardColors(containerColor = cardColor),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -82,29 +141,42 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Punto que "late" mientras el turno está activo
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .alpha(if (isSampling) pulse else 1f)
+                                .background(statusColor, CircleShape)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (isSampling) "Turno de Muestreo Activo" else "Turno Detenido (Consola Bloqueada)",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = statusColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
-                        text = if (isSampling) "🟢 Turno de Muestreo Activo" else "⏸️ Turno Detenido (Consola Bloqueada)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (isSampling) Color(0xFF2E7D32) else Color(0xFFE65100),
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Tiempo: $formattedTime | Capturados: ${entries.sumOf { it.groupSize }} pers.",
+                        text = "Tiempo: ${FlowCalculations.formatTimer(timerSeconds)} | Capturados: ${entries.sumOf { it.groupSize }} pers.",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-                    if (!isSampling) {
+                    AnimatedVisibility(visible = !isSampling) {
                         Text(
                             text = "Presiona ▶️ para habilitar el ingreso de personas",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFE65100)
+                            color = WarnOrange
                         )
                     }
                 }
                 FilledIconButton(
-                    onClick = { viewModel.toggleSamplingTimer() },
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.toggleSamplingTimer()
+                    },
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (isSampling) Color(0xFFD32F2F) else Color(0xFF2E7D32)
+                        containerColor = if (isSampling) TransitRed else BuyerGreen
                     )
                 ) {
                     Icon(
@@ -118,17 +190,17 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
         // 2. Selector de Puerta / Acceso
         Text("1. Punto de Acceso", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            accessList.chunked(2).forEach { rowItems ->
+            accessZones.chunked(2).forEach { rowItems ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    rowItems.forEach { access ->
+                    rowItems.forEach { zone ->
                         FilterChip(
-                            selected = selectedAccess == access,
-                            onClick = { selectedAccess = access },
+                            selected = selectedAccess == zone.name,
+                            onClick = { selectedAccess = zone.name },
                             enabled = isSampling,
-                            label = { Text(access.substringBefore(" -")) },
+                            label = { Text(zone.shortName) },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -165,7 +237,7 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
                 fontWeight = FontWeight.Bold
             )
             TextButton(
-                onClick = { resetCountersAfterSave() },
+                onClick = { clearCounters() },
                 enabled = isSampling && totalGroupPeople > 0
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = "Limpiar", modifier = Modifier.size(16.dp))
@@ -179,28 +251,40 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
             count = childCount,
             enabled = isSampling,
             onDecrement = { if (childCount > 0) childCount-- },
-            onIncrement = { childCount++ }
+            onIncrement = {
+                childCount++
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
         )
         AgeCounterRow(
             label = "👦 Jóvenes (14 - 25 años)",
             count = youngCount,
             enabled = isSampling,
             onDecrement = { if (youngCount > 0) youngCount-- },
-            onIncrement = { youngCount++ }
+            onIncrement = {
+                youngCount++
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
         )
         AgeCounterRow(
             label = "🧑 Adultos (26 - 59 años)",
             count = adultCount,
             enabled = isSampling,
             onDecrement = { if (adultCount > 0) adultCount-- },
-            onIncrement = { adultCount++ }
+            onIncrement = {
+                adultCount++
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
         )
         AgeCounterRow(
             label = "👴 Seniors (60+ años)",
             count = seniorCount,
             enabled = isSampling,
             onDecrement = { if (seniorCount > 0) seniorCount-- },
-            onIncrement = { seniorCount++ }
+            onIncrement = {
+                seniorCount++
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
         )
 
         // Resumen automático de clasificación (Solo / Pareja / Familia)
@@ -219,7 +303,7 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
                     text = autoCompanionLabel,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (totalGroupPeople > 0) Color(0xFF455A89) else Color.Gray
+                    color = if (totalGroupPeople > 0) BrandBlue else Color.Gray
                 )
             }
         }
@@ -237,21 +321,9 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Button(
-                onClick = {
-                    viewModel.registerGroupFlow(
-                        accessName = selectedAccess,
-                        direction = direction,
-                        childCount = childCount,
-                        youngCount = youngCount,
-                        adultCount = adultCount,
-                        seniorCount = seniorCount,
-                        madePurchase = true
-                    )
-                    lastSavedFeedback = "✅ Guardado ($totalGroupPeople pers. CON COMPRA)"
-                    resetCountersAfterSave()
-                },
+                onClick = { saveGroup(madePurchase = true) },
                 enabled = isSampling && totalGroupPeople > 0,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                colors = ButtonDefaults.buttonColors(containerColor = BuyerGreen),
                 modifier = Modifier
                     .weight(1f)
                     .height(60.dp)
@@ -260,21 +332,9 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
             }
 
             Button(
-                onClick = {
-                    viewModel.registerGroupFlow(
-                        accessName = selectedAccess,
-                        direction = direction,
-                        childCount = childCount,
-                        youngCount = youngCount,
-                        adultCount = adultCount,
-                        seniorCount = seniorCount,
-                        madePurchase = false
-                    )
-                    lastSavedFeedback = "⚠️ Guardado ($totalGroupPeople pers. SOLO TRÁNSITO)"
-                    resetCountersAfterSave()
-                },
+                onClick = { saveGroup(madePurchase = false) },
                 enabled = isSampling && totalGroupPeople > 0,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828)),
+                colors = ButtonDefaults.buttonColors(containerColor = TransitRed),
                 modifier = Modifier
                     .weight(1f)
                     .height(60.dp)
@@ -283,58 +343,13 @@ fun CaptureScreen(viewModel: HistoryViewModel) {
             }
         }
 
-        if (lastSavedFeedback.isNotEmpty()) {
+        AnimatedVisibility(visible = feedbackVisible) {
             Text(
-                text = lastSavedFeedback,
+                text = feedbackText,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF455A89),
+                color = BrandBlue,
                 fontWeight = FontWeight.Medium
             )
-        }
-    }
-}
-
-@Composable
-fun AgeCounterRow(
-    label: String,
-    count: Int,
-    enabled: Boolean,
-    onDecrement: () -> Unit,
-    onIncrement: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (count > 0) FontWeight.Bold else FontWeight.Normal
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedIconButton(
-                onClick = onDecrement,
-                enabled = enabled && count > 0,
-                modifier = Modifier.size(34.dp)
-            ) {
-                Icon(Icons.Default.Remove, contentDescription = "Restar")
-            }
-            Text(
-                text = "$count",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (count > 0) Color(0xFF455A89) else Color.Gray,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-            FilledIconButton(
-                onClick = onIncrement,
-                enabled = enabled,
-                colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color(0xFF455A89)),
-                modifier = Modifier.size(34.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Sumar")
-            }
         }
     }
 }

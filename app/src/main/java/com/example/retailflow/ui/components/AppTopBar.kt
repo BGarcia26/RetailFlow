@@ -3,10 +3,10 @@ package com.example.retailflow.ui.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.example.retailflow.ui.theme.BrandBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -19,6 +19,7 @@ fun AppTopBar(
     CenterAlignedTopAppBar(
         title = { Text(text = title, color = Color.White) },
         navigationIcon = {
+            // Antes había un ícono de menú que no hacía nada; ahora solo aparece la flecha cuando sirve.
             if (canNavigateBack) {
                 IconButton(onClick = onBackClick) {
                     Icon(
@@ -27,10 +28,6 @@ fun AppTopBar(
                         tint = Color.White
                     )
                 }
-            } else {
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Menu, contentDescription = "Menú", tint = Color.White)
-                }
             }
         },
         actions = {
@@ -38,8 +35,6 @@ fun AppTopBar(
                 Icon(Icons.Default.Analytics, contentDescription = "Bitácora Demográfica", tint = Color.White)
             }
         },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = Color(0xFF455A89)
-        )
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BrandBlue)
     )
 }
