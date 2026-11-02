@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Carpetas que el FileProvider puede exponer: solo filesDir/avatars/ (fotos de perfil) -->
+<paths>
+    <files-path
+        name="avatars"
+        path="avatars/" />
+</paths>

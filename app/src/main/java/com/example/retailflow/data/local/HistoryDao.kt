@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -28,6 +29,10 @@ interface HistoryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertEntry(entry: FlowEntryEntity)
+
+    // UPDATE: edita un registro existente (se identifica por su clave primaria)
+    @Update
+    suspend fun updateEntry(entry: FlowEntryEntity)
 
     @Delete
     suspend fun deleteEntry(entry: FlowEntryEntity)
