@@ -27,14 +27,16 @@ fun AppBottomBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    if (currentRoute == Route.Login.path || currentRoute == Route.RecoverPassword.path) {
-        return
-    }
+    // La visibilidad (Login/Crear cuenta ocultan la barra) la decide y anima MainActivity.
 
     NavigationBar {
         items.forEach { item ->
+            // "Detalle de turno" es hija de Historial: la pestaña Historial sigue marcada
+            val selected = currentRoute == item.route ||
+                (item.route == Route.History.path && Route.isShiftDetail(currentRoute))
+
             NavigationBarItem(
-                selected = currentRoute == item.route,
+                selected = selected,
                 onClick = {
                     if (currentRoute != item.route) {
                         navController.navigate(item.route) {
