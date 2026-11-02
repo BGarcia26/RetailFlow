@@ -39,7 +39,7 @@ class ShiftSummarizerTest {
         assertEquals(1, r.soloCount)
         assertEquals(1, r.coupleCount)
         assertEquals(1, r.groupCount)
-        assertEquals("05/11/2026 (Hoy)", r.dateLabel)
+        assertEquals("05/11/2026 (Jueves)", r.dateLabel)
         assertTrue(r.shiftTime.startsWith("Tarde"))
         assertEquals("Acceso 1: 3 pers. | Acceso 2: 3 pers.", r.accessSummary)
     }

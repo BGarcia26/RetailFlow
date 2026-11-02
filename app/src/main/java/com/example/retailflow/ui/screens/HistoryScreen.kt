@@ -95,7 +95,7 @@ fun HistoryScreen(
         OutlinedTextField(
             value = dateQuery,
             onValueChange = { dateQuery = it },
-            label = { Text("Filtrar por fecha, día u hora (ej: 14/08, Hoy)") },
+            label = { Text("Filtrar por fecha, día u hora (ej: 14/08, Viernes)") },
             leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Fecha") },
             trailingIcon = {
                 if (dateQuery.isNotEmpty()) {

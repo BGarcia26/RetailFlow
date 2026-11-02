@@ -6,7 +6,7 @@ import com.example.retailflow.data.local.HistoryEntity
 object SeedData {
     fun sampleHistory(): List<HistoryEntity> = listOf(
         HistoryEntity(
-            dateLabel = "13/08/2026 (Martes)",
+            dateLabel = "13/08/2026 (Jueves)",
             shiftTime = "Mañana (09:00 - 14:00)",
             totalFlow = 7890,
             buyersCount = 3550,
@@ -21,7 +21,7 @@ object SeedData {
             accessSummary = "Acceso 1: 3100 | Acceso 2: 2400 | Acceso 3: 1390 | Acceso 4: 1000"
         ),
         HistoryEntity(
-            dateLabel = "14/08/2026 (Miércoles)",
+            dateLabel = "14/08/2026 (Viernes)",
             shiftTime = "Tarde (14:00 - 20:00)",
             totalFlow = 8850,
             buyersCount = 3717,
@@ -36,7 +36,7 @@ object SeedData {
             accessSummary = "Acceso 1: 3600 | Acceso 2: 2650 | Acceso 3: 1600 | Acceso 4: 1000"
         ),
         HistoryEntity(
-            dateLabel = "15/08/2026 (Ayer)",
+            dateLabel = "15/08/2026 (Sábado)",
             shiftTime = "Noche (20:00 - 22:30)",
             totalFlow = 11400,
             buyersCount = 3192,

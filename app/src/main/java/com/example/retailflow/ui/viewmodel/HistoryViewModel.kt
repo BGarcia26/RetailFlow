@@ -34,7 +34,10 @@ class HistoryViewModel(private val repo: FlowRepository) : ViewModel() {
     private var timerJob: Job? = null
 
     init {
-        viewModelScope.launch { repo.seedIfEmpty() }
+        viewModelScope.launch {
+            repo.seedIfEmpty()
+            repo.repairDateLabels()
+        }
     }
 
     fun toggleSamplingTimer() {

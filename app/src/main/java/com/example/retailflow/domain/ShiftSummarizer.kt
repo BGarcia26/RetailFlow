@@ -34,8 +34,12 @@ object ShiftSummarizer {
         val timeFormatted = SimpleDateFormat("HH:mm", FlowCalculations.APP_LOCALE).format(now)
         val hour = Calendar.getInstance().apply { time = now }.get(Calendar.HOUR_OF_DAY)
 
+        // Se guarda el día de la semana y no "Hoy": este texto queda en la BD y mañana sería falso
+        val dayName = SimpleDateFormat("EEEE", FlowCalculations.APP_LOCALE).format(now)
+            .replaceFirstChar { it.uppercase(FlowCalculations.APP_LOCALE) }
+
         return HistoryEntity(
-            dateLabel = "$dateFormatted (Hoy)",
+            dateLabel = "$dateFormatted ($dayName)",
             shiftTime = "${FlowCalculations.shiftSlotFor(hour)} ($timeFormatted hrs)",
             totalFlow = totalPeople,
             buyersCount = buyersPeople,

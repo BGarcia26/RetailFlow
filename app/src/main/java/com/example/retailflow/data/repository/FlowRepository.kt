@@ -22,6 +22,8 @@ class FlowRepository(private val db: AppDatabase) {
         if (dao.getCount() == 0) dao.insertAll(SeedData.sampleHistory())
     }
 
+    suspend fun repairDateLabels() = dao.repairDateLabels()
+
     suspend fun addEntry(entry: FlowEntryEntity) = dao.insertEntry(entry)
 
     suspend fun updateEntry(entry: FlowEntryEntity) = dao.updateEntry(entry)
