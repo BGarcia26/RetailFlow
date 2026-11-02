@@ -48,7 +48,9 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                     .addMigrations(MIGRATION_4_5)
                     // Solo para versiones antiguas (1..3) que no tienen migración escrita.
-                    .fallbackToDestructiveMigration()
+                    // Se nombran una a una: el fallback general también borraría los datos
+                    // en cualquier versión futura a la que se le olvide escribir su migración.
+                    .fallbackToDestructiveMigrationFrom(1, 2, 3)
                     .build()
                 INSTANCE = instance
                 instance
