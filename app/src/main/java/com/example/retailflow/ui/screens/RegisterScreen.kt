@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
@@ -143,7 +144,11 @@ fun RegisterScreen(
                             imeAction = ImeAction.Next
                         ),
                         trailingIcon = {
-                            IconButton(onClick = { showPass = !showPass }) {
+                            // Sin foco de teclado: si no, "Siguiente" caería en este ícono y no en Confirmar
+                            IconButton(
+                                onClick = { showPass = !showPass },
+                                modifier = Modifier.focusProperties { canFocus = false }
+                            ) {
                                 Icon(
                                     imageVector = if (showPass) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                                     contentDescription = "Alternar visibilidad"
