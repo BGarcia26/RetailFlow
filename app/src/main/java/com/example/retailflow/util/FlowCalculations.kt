@@ -17,12 +17,16 @@ object FlowCalculations {
         else -> GRUPO
     }
 
+    /** "1 persona", "2 personas" y también "0 personas": en español el cero va en plural. */
+    fun countLabel(count: Int, singular: String, plural: String): String =
+        "$count ${if (count == 1) singular else plural}"
+
     fun ageSummary(child: Int, young: Int, adult: Int, senior: Int): String {
         val parts = mutableListOf<String>()
-        if (senior > 0) parts.add("$senior Senior")
-        if (adult > 0) parts.add("$adult Adulto")
-        if (young > 0) parts.add("$young Joven")
-        if (child > 0) parts.add("$child Niño")
+        if (senior > 0) parts.add(countLabel(senior, "Senior", "Seniors"))
+        if (adult > 0) parts.add(countLabel(adult, "Adulto", "Adultos"))
+        if (young > 0) parts.add(countLabel(young, "Joven", "Jóvenes"))
+        if (child > 0) parts.add(countLabel(child, "Niño", "Niños"))
         return parts.joinToString(", ")
     }
 

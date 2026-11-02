@@ -54,7 +54,7 @@ fun DashboardScreen(viewModel: HistoryViewModel) {
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${history.size} turnos cerrados + turno en curso",
+                            text = "${FlowCalculations.countLabel(history.size, "turno cerrado", "turnos cerrados")} + turno en curso",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(

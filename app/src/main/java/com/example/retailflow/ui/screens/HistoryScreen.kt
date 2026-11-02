@@ -23,6 +23,7 @@ import com.example.retailflow.ui.theme.BrandBlue
 import com.example.retailflow.ui.theme.InfoBg
 import com.example.retailflow.ui.theme.TransitRed
 import com.example.retailflow.ui.viewmodel.HistoryViewModel
+import com.example.retailflow.util.FlowCalculations
 
 @Composable
 fun HistoryScreen(
@@ -76,7 +77,8 @@ fun HistoryScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Turno Actual en Curso: $currentShiftPeople personas registradas",
+                        text = "Turno Actual en Curso: " +
+                            FlowCalculations.countLabel(currentShiftPeople, "persona registrada", "personas registradas"),
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
@@ -187,7 +189,7 @@ fun HistoryScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
-                                Text(text = "Flujo Total: ${record.totalFlow} personas")
+                                Text(text = "Flujo Total: ${FlowCalculations.countLabel(record.totalFlow, "persona", "personas")}")
                                 Text(
                                     text = "Solo Tránsito (Fuga): ${record.transitOnlyPercentage}%",
                                     color = TransitRed,
@@ -219,7 +221,7 @@ fun HistoryScreen(
             title = { Text("¿Cerrar el turno?") },
             text = {
                 Text(
-                    "Se guardará un resumen de $currentShiftPeople personas en el historial " +
+                    "Se guardará un resumen de ${FlowCalculations.countLabel(currentShiftPeople, "persona", "personas")} en el historial " +
                         "y la bitácora del turno quedará vacía."
                 )
             },
