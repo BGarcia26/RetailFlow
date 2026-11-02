@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChevronRight
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,6 +23,7 @@ import com.example.retailflow.ui.theme.BrandBlue
 import com.example.retailflow.ui.theme.InfoBg
 import com.example.retailflow.ui.theme.TransitRed
 import com.example.retailflow.ui.viewmodel.HistoryViewModel
+import com.example.retailflow.util.FlowCalculations
 
 @Composable
 fun HistoryScreen(
@@ -48,6 +51,18 @@ fun HistoryScreen(
         }
     }
 
+    // Con key, LazyColumn se queda en el elemento que ya mostraba: un turno nuevo quedaría oculto arriba.
+    // Se recuerda el id más nuevo para subir solo si llega uno, y no al volver de un detalle.
+    val listState = rememberLazyListState()
+    val newestId = filteredList.firstOrNull()?.id ?: 0
+    var newestSeenId by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(newestId) {
+        if (newestId > newestSeenId) {
+            if (newestSeenId != 0) listState.animateScrollToItem(0)
+            newestSeenId = newestId
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -62,7 +77,8 @@ fun HistoryScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Turno Actual en Curso: $currentShiftPeople personas registradas",
+                        text = "Turno Actual en Curso: " +
+                            FlowCalculations.countLabel(currentShiftPeople, "persona registrada", "personas registradas"),
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
@@ -81,7 +97,7 @@ fun HistoryScreen(
         OutlinedTextField(
             value = dateQuery,
             onValueChange = { dateQuery = it },
-            label = { Text("Filtrar por fecha, día u hora (ej: 14/08, Hoy)") },
+            label = { Text("Filtrar por fecha, día u hora (ej: 14/08, Viernes)") },
             leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Fecha") },
             trailingIcon = {
                 if (dateQuery.isNotEmpty()) {
@@ -118,12 +134,18 @@ fun HistoryScreen(
                 contentAlignment = Alignment.TopCenter
             ) {
                 Text(
-                    text = "No se encontraron turnos para ese filtro de fecha/hora.",
+                    // La app parte sin datos: sin turnos no hay ningún filtro que culpar
+                    text = if (historyList.isEmpty()) {
+                        "Aún no hay turnos cerrados. Registra personas en \"Capturar\" y cierra el turno aquí."
+                    } else {
+                        "No se encontraron turnos para ese filtro de fecha/hora."
+                    },
                     color = Color.Gray
                 )
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -167,7 +189,7 @@ fun HistoryScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
-                                Text(text = "Flujo Total: ${record.totalFlow} personas")
+                                Text(text = "Flujo Total: ${FlowCalculations.countLabel(record.totalFlow, "persona", "personas")}")
                                 Text(
                                     text = "Solo Tránsito (Fuga): ${record.transitOnlyPercentage}%",
                                     color = TransitRed,
@@ -199,7 +221,7 @@ fun HistoryScreen(
             title = { Text("¿Cerrar el turno?") },
             text = {
                 Text(
-                    "Se guardará un resumen de $currentShiftPeople personas en el historial " +
+                    "Se guardará un resumen de ${FlowCalculations.countLabel(currentShiftPeople, "persona", "personas")} en el historial " +
                         "y la bitácora del turno quedará vacía."
                 )
             },

@@ -2,9 +2,11 @@ package com.example.retailflow.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.retailflow.data.local.AccessTotals
 import com.example.retailflow.data.local.FlowEntryEntity
 import com.example.retailflow.data.local.HistoryEntity
 import com.example.retailflow.data.repository.FlowRepository
+import com.example.retailflow.domain.AccessStatsCalculator
 import com.example.retailflow.domain.ShiftSummarizer
 import com.example.retailflow.util.FlowCalculations
 import kotlinx.coroutines.Job
@@ -25,6 +27,10 @@ class HistoryViewModel(private val repo: FlowRepository) : ViewModel() {
     val entriesList: StateFlow<List<FlowEntryEntity>> = repo.entries
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** Totales por acceso de todos los turnos cerrados: alimenta el Dashboard. */
+    val accessTotals: StateFlow<List<AccessTotals>> = repo.accessTotals
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _timerSeconds = MutableStateFlow(0)
     val timerSeconds: StateFlow<Int> = _timerSeconds
 
@@ -34,7 +40,10 @@ class HistoryViewModel(private val repo: FlowRepository) : ViewModel() {
     private var timerJob: Job? = null
 
     init {
-        viewModelScope.launch { repo.seedIfEmpty() }
+        viewModelScope.launch {
+            repo.repairDateLabels()
+            repo.backfillAccessStats()
+        }
     }
 
     fun toggleSamplingTimer() {
@@ -134,8 +143,9 @@ class HistoryViewModel(private val repo: FlowRepository) : ViewModel() {
     // ---------- CERRAR TURNO ----------
     fun closeShiftAndSaveToHistory() {
         viewModelScope.launch {
-            val record = ShiftSummarizer.summarize(entriesList.value) ?: return@launch
-            repo.closeShift(record)
+            val entries = entriesList.value
+            val record = ShiftSummarizer.summarize(entries) ?: return@launch
+            repo.closeShift(record, AccessStatsCalculator.fromEntries(entries))
             _timerSeconds.value = 0
             _isSamplingActive.value = false
             timerJob?.cancel()

@@ -14,8 +14,15 @@ class FlowCalculationsTest {
     }
 
     @Test fun ageSummary_ordersSeniorFirstAndSkipsZeros() {
-        assertEquals("2 Senior, 1 Adulto, 1 Niño", FlowCalculations.ageSummary(child = 1, young = 0, adult = 1, senior = 2))
+        assertEquals("2 Seniors, 1 Adulto, 1 Niño", FlowCalculations.ageSummary(child = 1, young = 0, adult = 1, senior = 2))
+        assertEquals("3 Adultos, 2 Jóvenes, 4 Niños", FlowCalculations.ageSummary(child = 4, young = 2, adult = 3, senior = 0))
         assertEquals("", FlowCalculations.ageSummary(0, 0, 0, 0))
+    }
+
+    @Test fun countLabel_usesSingularOnlyForOne() {
+        assertEquals("0 personas", FlowCalculations.countLabel(0, "persona", "personas"))
+        assertEquals("1 persona", FlowCalculations.countLabel(1, "persona", "personas"))
+        assertEquals("2 personas", FlowCalculations.countLabel(2, "persona", "personas"))
     }
 
     @Test fun percent_roundsInsteadOfTruncating() {

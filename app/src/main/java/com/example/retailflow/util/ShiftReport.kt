@@ -14,7 +14,7 @@ object ShiftReport {
             appendLine("Fecha: ${shift.dateLabel}")
             appendLine("Horario: ${shift.shiftTime}")
             appendLine()
-            appendLine("Flujo total: ${shift.totalFlow} personas")
+            appendLine("Flujo total: ${FlowCalculations.countLabel(shift.totalFlow, "persona", "personas")}")
             appendLine("🛍️ Compradores: ${shift.buyersCount} ($buyerPct%)")
             appendLine("🚶 Solo tránsito: $transitCount (${shift.transitOnlyPercentage}%)")
             appendLine()

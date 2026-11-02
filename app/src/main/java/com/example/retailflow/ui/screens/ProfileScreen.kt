@@ -94,12 +94,15 @@ fun ProfileScreen(
                     ) {
                         UserAvatar(photoPath = user?.photoPath, size = 140.dp)
                     }
-                    // Insignia de cámara: indica que la foto se puede cambiar
+                    // Insignia de cámara: indica que la foto se puede cambiar.
+                    // Necesita su propio clic porque queda fuera del círculo del avatar.
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .size(38.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .clickable { showPhotoOptions = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(

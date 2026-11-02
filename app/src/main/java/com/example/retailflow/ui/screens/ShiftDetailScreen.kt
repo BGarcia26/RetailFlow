@@ -23,7 +23,12 @@ import com.example.retailflow.ui.theme.BrandBlue
 import com.example.retailflow.ui.theme.BuyerGreen
 import com.example.retailflow.ui.theme.TransitRed
 import com.example.retailflow.ui.viewmodel.HistoryViewModel
+import com.example.retailflow.util.FlowCalculations
 import com.example.retailflow.util.ShiftReport
+
+private fun people(count: Int) = FlowCalculations.countLabel(count, "persona", "personas")
+
+private fun records(count: Int) = FlowCalculations.countLabel(count, "registro", "registros")
 
 @Composable
 fun ShiftDetailScreen(
@@ -126,7 +131,7 @@ fun ShiftDetailScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Flujo Total Registrado: ${shift.totalFlow} personas",
+                        text = "Flujo Total Registrado: ${people(shift.totalFlow)}",
                         style = MaterialTheme.typography.titleLarge
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -164,10 +169,10 @@ fun ShiftDetailScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("• Niños (< 14 años): ${shift.childCount} personas")
-                    Text("• Jóvenes (14 - 25 años): ${shift.youngCount} personas")
-                    Text("• Adultos (26 - 59 años): ${shift.adultCount} personas")
-                    Text("• Seniors (60+ años): ${shift.seniorCount} personas")
+                    Text("• Niños (< 14 años): ${people(shift.childCount)}")
+                    Text("• Jóvenes (14 - 25 años): ${people(shift.youngCount)}")
+                    Text("• Adultos (26 - 59 años): ${people(shift.adultCount)}")
+                    Text("• Seniors (60+ años): ${people(shift.seniorCount)}")
                 }
             }
         }
@@ -185,9 +190,9 @@ fun ShiftDetailScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("• Visitantes Solos: ${shift.soloCount} registros")
-                    Text("• Parejas: ${shift.coupleCount} registros")
-                    Text("• Familias / Grupos (3+): ${shift.groupCount} registros")
+                    Text("• Visitantes Solos: ${records(shift.soloCount)}")
+                    Text("• Parejas: ${records(shift.coupleCount)}")
+                    Text("• Familias / Grupos (3+): ${records(shift.groupCount)}")
                 }
             }
         }

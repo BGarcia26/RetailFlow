@@ -24,7 +24,8 @@ data class LoginUiState(
     val emailError: String? = null,
     val canSubmit: Boolean = false,
     val isSubmitting: Boolean = false,
-    val authError: String? = null
+    val authError: String? = null,
+    val loggedIn: Boolean = false
 )
 
 data class RegisterUiState(
@@ -39,7 +40,8 @@ data class RegisterUiState(
     val strength: Int = 0,
     val canSubmit: Boolean = false,
     val isSubmitting: Boolean = false,
-    val registerError: String? = null
+    val registerError: String? = null,
+    val registered: Boolean = false
 )
 
 /**
@@ -73,8 +75,12 @@ class AuthViewModel(private val repo: UserRepository) : ViewModel() {
         )
     }
 
-    /** Valida contra Room. La corrutina evita bloquear la UI mientras se consulta y se calcula el hash. */
-    fun login(onSuccess: () -> Unit) {
+    /**
+     * Valida contra Room. La corrutina evita bloquear la UI mientras se consulta y se calcula el hash.
+     * El éxito se avisa por estado y no con un callback: el ViewModel sobrevive al girar la pantalla,
+     * y un callback guardado aquí navegaría con el NavController de la Activity ya destruida (crash).
+     */
+    fun login() {
         val s = _loginState.value
         if (!s.canSubmit || s.isSubmitting) return
         viewModelScope.launch {
@@ -83,8 +89,7 @@ class AuthViewModel(private val repo: UserRepository) : ViewModel() {
             val user = repo.login(s.email, s.pass)
             if (user != null) {
                 _currentUserId.value = user.id
-                _loginState.value = LoginUiState() // limpia email/clave al entrar
-                onSuccess()
+                _loginState.value = LoginUiState(loggedIn = true) // limpia email/clave al entrar
             } else {
                 _loginState.update {
                     it.copy(
@@ -95,6 +100,11 @@ class AuthViewModel(private val repo: UserRepository) : ViewModel() {
                 }
             }
         }
+    }
+
+    /** La pantalla ya navegó: se baja la marca para no volver a navegar al regresar al Login. */
+    fun onLoginHandled() {
+        _loginState.value = LoginUiState()
     }
 
     // ---------- REGISTRO ----------
@@ -136,7 +146,7 @@ class AuthViewModel(private val repo: UserRepository) : ViewModel() {
         _registerState.value = RegisterUiState()
     }
 
-    fun register(onSuccess: () -> Unit) {
+    fun register() {
         val s = _registerState.value
         if (!s.canSubmit || s.isSubmitting) return
         viewModelScope.launch {
@@ -145,8 +155,7 @@ class AuthViewModel(private val repo: UserRepository) : ViewModel() {
             repo.register(s.name, s.email, s.pass)
                 .onSuccess { newId ->
                     _currentUserId.value = newId // la cuenta nueva queda con sesión iniciada
-                    _registerState.value = RegisterUiState()
-                    onSuccess()
+                    _registerState.value = RegisterUiState(registered = true)
                 }
                 .onFailure { error ->
                     _registerState.update {

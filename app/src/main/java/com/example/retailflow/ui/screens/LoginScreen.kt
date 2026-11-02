@@ -41,7 +41,15 @@ fun LoginScreen(
     // Se usa tanto en el botón como en la tecla "Listo" del teclado
     val doLogin = {
         focusManager.clearFocus()
-        vm.login(onLoginSuccess)
+        vm.login()
+    }
+
+    // Navega la pantalla actual, que siempre tiene el NavController vivo aunque se haya girado
+    LaunchedEffect(state.loggedIn) {
+        if (state.loggedIn) {
+            vm.onLoginHandled()
+            onLoginSuccess()
+        }
     }
 
     Box(
